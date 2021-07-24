@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-injector
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# This cluster role binding allows k8s-injector user to watch namespaces.
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-injector
+subjects:
+- kind: ServiceAccount
+  name: k8s-injector
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: k8s-injector
+  apiGroup: rbac.authorization.k8s.io

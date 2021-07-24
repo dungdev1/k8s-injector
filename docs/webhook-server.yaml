@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-injector
+  namespace: kube-system
+  labels:
+    app: k8s-injector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-injector
+  template:
+    metadata:
+      labels:
+        app: k8s-injector
+    spec:
+      serviceAccountName: k8s-injector
+      priorityClassName: system-cluster-critical
+      nodeSelector:
+        kubernetes.io/role: master
+      tolerations:
+        - operator: Exists
+      containers:
+      - name: server
+        image: 1712371/k8s-injector:20
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        volumeMounts:
+        - name: webhook-tls-certs
+          mountPath: /var/lib/secrets
+          readOnly: true
+      volumes:
+      - name: webhook-tls-certs
+        secret:
+          secretName: k8s-injector-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-injector
+  namespace: kube-system
+spec:
+  selector:
+    app: k8s-injector
+  type: ClusterIP
+  ports:
+    - name: https
+      port: 443
+      targetPort: webhook-api

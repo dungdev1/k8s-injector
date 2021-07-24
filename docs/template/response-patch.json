@@ -1,0 +1,46 @@
+[
+    {
+        "op": "add",
+        "path": "/spec/containers/-",
+        "value": {
+            "name": "healthcheck",
+            "image": "822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/dev:server-healthcheck-04",
+            "command": [
+                "/usr/bin/server-healthcheck"
+            ],
+            "ports": [
+                {
+                    "containerPort": 3990
+                }
+            ],
+            "resources": {},
+            "livenessProbe": {
+                "httpGet": {
+                    "path": "/healthcheck-server/healthz",
+                    "port": 3990
+                },
+                "initialDelaySeconds": 5,
+                "timeoutSeconds": 5,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "failureThreshold": 3
+            },
+            "imagePullPolicy": "IfNotPresent"
+        }
+    },
+    {
+        "op": "add",
+        "path": "/spec/containers/0/readinessProbe",
+        "value": {
+            "httpGet": {
+                "path": "/healthz",
+                "port": 3990
+            },
+            "initialDelaySeconds": 35,
+            "timeoutSeconds": 5,
+            "periodSeconds": 10,
+            "successThreshold": 2,
+            "failureThreshold": 3
+        }
+    }
+]

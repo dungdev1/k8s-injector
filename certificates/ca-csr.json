@@ -1,0 +1,16 @@
+{
+  "CN": "Admission Controller Webhook CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "Viet Nam",
+      "L": "Ho Chi Minh City",
+      "O": "Inspirelab Technology Inc",
+      "OU": "Devops",
+      "ST": "Ho Chi Minh"
+    }
+  ]
+}

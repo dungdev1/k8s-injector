@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-injector
+  namespace: kube-system
+  labels:
+    app: k8s-injector
+data:
+  .spec.containers.-: |
+    containers:
+    - name: healthcheck
+      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/dev:server-healthcheck-04
+      ports:
+      - containerPort: 3990
+      command:
+        - /usr/bin/server-healthcheck
+      livenessProbe:
+        httpGet:
+          path: /healthcheck-server/healthz
+          port: 3990
+        initialDelaySeconds: 5
+        timeoutSeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        failureThreshold: 3
+      imagePullPolicy: IfNotPresent
+  .spec.containers.0.readinessProbe.: |
+    readinessProbe:
+      httpGet:
+        path: /healthz
+        port: 3990
+      initialDelaySeconds: 35
+      timeoutSeconds: 5
+      periodSeconds: 10
+      successThreshold: 2
+      failureThreshold: 3
