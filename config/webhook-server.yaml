@@ -23,7 +23,7 @@ spec:
         - operator: Exists
       containers:
       - name: server
-        image: 1712371/k8s-injector:20
+        image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/devops:IMAGE-BUILD-ID
         imagePullPolicy: Always
         ports:
         - containerPort: 8443

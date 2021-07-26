@@ -9,7 +9,7 @@ data:
   .spec.containers.-: |
     containers:
     - name: healthcheck
-      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/dev:server-healthcheck-04
+      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/devops:IMAGE-BUILD-ID
       ports:
       - containerPort: 3990
       command:
@@ -24,7 +24,7 @@ data:
         successThreshold: 1
         failureThreshold: 3
       imagePullPolicy: IfNotPresent
-  .spec.containers.0.readinessProbe.: |
+  .spec.containers.0.readinessProbe: |
     readinessProbe:
       httpGet:
         path: /healthz

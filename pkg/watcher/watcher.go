@@ -106,13 +106,13 @@ func (c *K8sWatcher) WatchNamespace(ctx context.Context, webhookEnabledLabel map
 			}
 			switch e.Type {
 			case watch.Added:
-				log.Info().Msgf("Added a Namespace: %s", namespace.Name)
+				log.Debug().Msgf("Added a Namespace: %s", namespace.Name)
 				ch <- NamespaceEvent{
 					Namespace: namespace.Name,
 					Type:      watch.Added,
 				}
 			case watch.Deleted:
-				log.Info().Msgf("Deleted label or removed namespace %s", namespace.Name)
+				log.Debug().Msgf("Deleted label or removed namespace %s", namespace.Name)
 				ch <- NamespaceEvent{
 					Namespace: namespace.Name,
 					Type:      watch.Deleted,
@@ -151,6 +151,7 @@ func (c *K8sWatcher) WatchConfigMap(ctx context.Context, notify chan<- interface
 			if configmap.Name != c.CfmName {
 				break
 			}
+
 			switch e.Type {
 			case watch.Added:
 				fallthrough
@@ -169,7 +170,7 @@ func (c *K8sWatcher) WatchConfigMap(ctx context.Context, notify chan<- interface
 }
 
 func (c *K8sWatcher) GetConfigMap(ctx context.Context) (map[string]*config.InjectionConfig, error) {
-	log.Info().Msg("Fetching Configmaps...")
+	log.Debug().Msg("Fetching Configmaps...")
 	cfm, err := c.client.ConfigMaps(c.Namespace).Get(ctx, c.CfmName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("cannot get config map with error: %s", err.Error())

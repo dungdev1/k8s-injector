@@ -61,7 +61,7 @@ func main() {
 			if err != nil {
 				switch err {
 				case watcherpkg.ErrWatcheChannelClosed:
-					log.Info().Msgf("Namespace watcher got error: %s\n\tRestart Namespace watcher", err.Error())
+					log.Info().Msgf("Namespace watcher got error: %s, Restart Namespace watcher", err.Error())
 				default:
 					panic(err.Error())
 				}
@@ -76,7 +76,7 @@ func main() {
 			if err != nil {
 				switch err {
 				case watcherpkg.ErrWatcheChannelClosed:
-					log.Info().Msgf("ConfigMap watcher got error: %s\n\tRestart ConfigMap watcher", err.Error())
+					log.Info().Msgf("ConfigMap watcher got error: %s, Restart ConfigMap watcher", err.Error())
 				default:
 					panic(err.Error())
 				}
@@ -106,6 +106,7 @@ func main() {
 				if err != nil {
 					panic(err.Error())
 				}
+				log.Info().Msgf("Fetched configmap %q in namespace %q", watcher.CfmName, watcher.Namespace)
 				webhook.InjConfigs = injConfigs
 			}
 		}
@@ -117,15 +118,15 @@ func main() {
 		signal.Notify(signalChan, syscall.SIGTERM)
 		<-signalChan
 		log.Info().Msg("Received SIGTERM, shuting down...")
-		os.Exit(0)
 		if err := webhook.Shutdown(); err != nil {
-			log.Error().Msgf("failed to shutdown server: %v", err)
+			log.Fatal().Msgf("Failed to shutdown server: %v", err.Error())
 		}
+		os.Exit(0)
 	}()
 
-	log.Info().Msgf("service is ready to listen on port: %d", mainConfig.TLSPort)
+	log.Info().Msgf("Service is ready to listen on port: %d", mainConfig.TLSPort)
 	if err := webhook.Start(mainConfig.TLSPort, mainConfig.CertFile, mainConfig.KeyFile); err != nil {
-		log.Fatal().Err(err).Msgf("service failed: %v", err)
+		log.Fatal().Msgf("Service failed: %v", err.Error())
 	}
 	log.Info().Msgf("Started webhook server on port %s", mainConfig.TLSPort)
 }

@@ -36,8 +36,12 @@ func ApplyNewConfig(req *admissionv1.AdmissionRequest, injConfigs map[string]*co
 	if err != nil {
 		return nil, err
 	}
+	if val, ok := pod.Labels["k8s-injection"]; ok && val == "disable" {
+		log.Info().Msgf("Does not apply configuration for Replicas %q because it's diabled")
+		return []controller.PatchOperation{}, nil
+	}
 
-	log.Info().Msgf("ReplicaSet %q belong to namespace %q", pod.GenerateName, req.Namespace)
+	log.Debug().Msgf("ReplicaSet %q belong to namespace %q", pod.GenerateName, req.Namespace)
 	if !namespaces[req.Namespace] {
 		log.Info().Msgf("This mutating webhook only support on Pod in namepsaces %v, add label k8s-injection=enabled to enable for namespace", namespaces)
 		return []controller.PatchOperation{}, nil
