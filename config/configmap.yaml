@@ -13,7 +13,7 @@ data:
       ports:
       - containerPort: 3990
       command:
-        - /usr/bin/server-healthcheck
+        - /usr/bin/healthcheck-server
       livenessProbe:
         httpGet:
           path: /healthcheck-server/healthz
