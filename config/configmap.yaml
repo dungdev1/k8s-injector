@@ -9,7 +9,7 @@ data:
   .spec.containers.-: |
     containers:
     - name: healthcheck
-      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/devops:healthcheck-server-5
+      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/devops:healthcheck-server-7
       ports:
       - containerPort: 3990
       command:
@@ -29,8 +29,26 @@ data:
       httpGet:
         path: /healthz
         port: 3990
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+      periodSeconds: 30
+      successThreshold: 2
+      failureThreshold: 3
+  .spec.containers.0.startupProbe: |
+    startupProbe:
+      httpGet:
+        path: /readyz
+        port: 3990
       initialDelaySeconds: 35
       timeoutSeconds: 5
       periodSeconds: 10
       successThreshold: 2
-      failureThreshold: 3
+  .spec.containers.0.livenessProbe: |
+    livenessProbe:
+      httpGet:
+        path: /livez
+        port: 3990
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+      periodSeconds: 60
+      failureThreshold: 2
