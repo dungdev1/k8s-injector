@@ -16,6 +16,7 @@ type InjectionConfig struct {
 	InitContainers []corev1.Container           `json:"initContainers"`
 	Readiness      *corev1.Probe                `json:"readinessProbe"`
 	Liveness       *corev1.Probe                `json:"livenessProbe"`
+	Startup        *corev1.Probe                `json:"startupProbe"`
 	Resources      *corev1.ResourceRequirements `json:"resources"`
 	Ports          []corev1.ContainerPort       `json:"ports"`
 	// version        string
