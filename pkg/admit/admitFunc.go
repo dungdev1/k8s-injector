@@ -62,8 +62,8 @@ func ApplyNewConfig(req *admissionv1.AdmissionRequest, injConfigs map[string]*co
 			}
 			// fmt.Printf("Field: %s - Kind: %s\n", fieldName, r.Field(i).Kind())
 			// fmt.Println(r.Field(i).Interface())
-
-			if r.Field(i).Kind() == reflect.Slice {
+			if r.Field(i).Kind() == reflect.Slice && string(name[len(name)-1]) == "-" {
+				// Trường hợp add thêm 1 hoặc nhiều config vào list (đã có ít nhất 1 item)
 				for j := 0; j < r.Field(i).Len(); j++ {
 					patches = append(patches, controller.PatchOperation{
 						Op:    "add",
@@ -71,14 +71,15 @@ func ApplyNewConfig(req *admissionv1.AdmissionRequest, injConfigs map[string]*co
 						Value: r.Field(i).Index(j).Interface(),
 					})
 				}
-				continue
-			}
+			} else {
 
-			patches = append(patches, controller.PatchOperation{
-				Op:    "add",
-				Path:  name,
-				Value: r.Field(i).Interface(),
-			})
+				// Trường hợp add thêm 1 config/ 1 list config (new)
+				patches = append(patches, controller.PatchOperation{
+					Op:    "add",
+					Path:  name,
+					Value: r.Field(i).Interface(),
+				})
+			}
 
 		}
 	}
