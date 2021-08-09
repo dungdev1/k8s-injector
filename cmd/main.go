@@ -125,10 +125,12 @@ func main() {
 	}()
 
 	log.Info().Msgf("Service is ready to listen on port: %d", mainConfig.TLSPort)
-	if err := webhook.StartInjectorServer(mainConfig.TLSPort, mainConfig.CertFile, mainConfig.KeyFile); err != nil {
-		log.Fatal().Msgf("Service failed: %v", err.Error())
-	}
-	log.Info().Msgf("Started webhook server on port %s", mainConfig.TLSPort)
+	go func() {
+		if err := webhook.StartInjectorServer(mainConfig.TLSPort, mainConfig.CertFile, mainConfig.KeyFile); err != nil {
+			log.Fatal().Msgf("Service failed: %v", err.Error())
+		}
+		log.Info().Msgf("Started webhook server on port %s", mainConfig.TLSPort)
+	}()
 
 	if err := webhook.StartLifeCycleServer((mainConfig.LifecyclePort)); err != nil {
 		log.Fatal().Msgf("Service failed: %v", err.Error())
