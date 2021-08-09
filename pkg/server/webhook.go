@@ -38,7 +38,7 @@ func (webhook *WebhookServer) StartLifeCycleServer(port int) error {
 		Handler: webhook.lifeCycleBootRouter(),
 	}
 
-	return webhook.server.ListenAndServe()
+	return webhook.lifecycleServer.ListenAndServe()
 }
 
 func (webhook *WebhookServer) Shutdown() error {
