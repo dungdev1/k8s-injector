@@ -26,3 +26,13 @@ func (webhook *WebhookServer) Mutate(w http.ResponseWriter, r *http.Request, ps 
 		log.Info().Msgf("Could not write response: %v", writeErr)
 	}
 }
+
+func (webhook *WebhookServer) Health(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	log.Debug().Msg("Handling health checking request...")
+
+	w.WriteHeader(http.StatusOK)
+	_, writeErr := w.Write([]byte("ok"))
+	if writeErr != nil {
+		log.Info().Msgf("Could not write response: %v", writeErr)
+	}
+}

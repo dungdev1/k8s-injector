@@ -84,7 +84,7 @@ func HandleAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, in
 	} else {
 		if len(patchOps) != 0 {
 			patchBytes, err := json.Marshal(patchOps)
-			log.Info().Msgf("%s", patchBytes)
+			log.Debug().Msgf("%s", patchBytes)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return nil, fmt.Errorf("could not marshal JSON patch: %v", err)

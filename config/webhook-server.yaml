@@ -32,6 +32,15 @@ spec:
         - name: webhook-tls-certs
           mountPath: /var/lib/secrets
           readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+          periodSeconds: 30
+          successThreshold: 1
+          failureThreshold: 3
       volumes:
       - name: webhook-tls-certs
         secret:
