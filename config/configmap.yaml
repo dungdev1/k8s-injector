@@ -9,7 +9,7 @@ data:
   .spec.containers.-: |
     containers:
     - name: healthcheck
-      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/devops:healthcheck-server-7
+      image: 822152438362.dkr.ecr.ap-southeast-1.amazonaws.com/devops:healthcheck-server-13
       ports:
       - containerPort: 3990
       command:
