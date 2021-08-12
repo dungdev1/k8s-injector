@@ -43,6 +43,7 @@ data:
       timeoutSeconds: 5
       periodSeconds: 10
       successThreshold: 1
+      failureThreshold: 10
   .spec.containers.0.livenessProbe: |
     livenessProbe:
       httpGet:
