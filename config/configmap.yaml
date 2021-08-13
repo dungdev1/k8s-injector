@@ -31,7 +31,7 @@ data:
         port: 3990
       initialDelaySeconds: 5
       timeoutSeconds: 5
-      periodSeconds: 30
+      periodSeconds: 10
       successThreshold: 2
       failureThreshold: 3
   .spec.containers.0.startupProbe: |
@@ -51,5 +51,5 @@ data:
         port: 3990
       initialDelaySeconds: 5
       timeoutSeconds: 5
-      periodSeconds: 60
+      periodSeconds: 30
       failureThreshold: 2
