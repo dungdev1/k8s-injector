@@ -115,7 +115,6 @@ func decodePodResource(req *admissionv1.AdmissionRequest) (*corev1.Pod, error) {
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
 	}
-	fmt.Println(pod)
 
 	return &pod, nil
 }
