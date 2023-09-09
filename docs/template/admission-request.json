@@ -23,7 +23,7 @@
             "version": "v1",
             "resource": "pods"
         },
-        "namespace": "test-ns",
+        "namespace": "dbservice",
         "operation": "CREATE",
         "userInfo": {
             "username": "system:serviceaccount:kube-system:replicaset-controller",

@@ -7,10 +7,7 @@ import (
 
 	"github.com/dungdev1/k8s-injector/pkg/config"
 	"github.com/julienschmidt/httprouter"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-var podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
 
 type WebhookServer struct {
 	server          *http.Server

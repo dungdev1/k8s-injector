@@ -5,6 +5,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 WORKDIR /src/$PROJECT/cmd
+RUN go test ./...
 RUN CGO_ENABLED=0 go build -o /go/bin/k8s-injector
 RUN ls /go/bin
 

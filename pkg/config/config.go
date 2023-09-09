@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -81,7 +80,7 @@ func ParseCliArgs(config *Config) error {
 	}
 
 	if config.ConfigmapNamespace == "" {
-		ns, err := ioutil.ReadFile(ServiceAccountNamespaceFilePath)
+		ns, err := os.ReadFile(ServiceAccountNamespaceFilePath)
 		if err != nil {
 			config.ConfigmapNamespace = "default"
 		}

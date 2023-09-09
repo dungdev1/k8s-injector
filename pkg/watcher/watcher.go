@@ -21,11 +21,9 @@ import (
 )
 
 type K8sWatcher struct {
-	Namespace  string
-	CfmName    string
-	MasterURL  string
-	KubeConfig string
-	client     k8sv1.CoreV1Interface
+	Namespace string
+	CfmName   string
+	client    k8sv1.CoreV1Interface
 }
 
 type NamespaceEvent struct {
@@ -35,32 +33,30 @@ type NamespaceEvent struct {
 
 var ErrWatcheChannelClosed = errors.New("watcher channel has close")
 
-func NewK8sWatcher(ns string, cfmName string, masterUrl string, kubeconfig string) (*K8sWatcher, error) {
-	c := K8sWatcher{
-		CfmName:    cfmName,
-		Namespace:  ns,
-		MasterURL:  masterUrl,
-		KubeConfig: kubeconfig,
+func NewK8sWatcher(ns string, cfmName string, masterURL string, kubeconfig string) (*K8sWatcher, error) {
+	w := K8sWatcher{
+		CfmName:   cfmName,
+		Namespace: ns,
 	}
 
 	var k8sConfig *rest.Config
 	var err error
-	if masterUrl != "" {
-		log.Info().Msgf("Use master url: %s for connecting to cluster.", masterUrl)
-		log.Info().Msgf("Creating Kubernetes client from kubeconfig=%s with masterUrl=%s", c.KubeConfig, c.MasterURL)
-		k8sConfig, err = clientcmd.BuildConfigFromFlags(c.MasterURL, c.KubeConfig)
+	if masterURL != "" {
+		log.Info().Msgf("Use master url: %s for connecting to cluster.", masterURL)
+		log.Info().Msgf("Creating Kubernetes client from kubeconfig=%s with masterUrl=%s", kubeconfig, masterURL)
+		k8sConfig, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create Kubernetes client from outside cluster with error: %s", err)
 		}
 	} else {
-		if c.Namespace == "" {
+		if w.Namespace == "" {
 			ns, err := ioutil.ReadFile(config.ServiceAccountNamespaceFilePath)
 			if err != nil {
-				c.Namespace = "default"
+				w.Namespace = "default"
 			}
 			if string(ns) != "" {
-				c.Namespace = string(ns)
-				log.Info().Msgf("Use current namespace=%s from %s for searching configmap", c.Namespace, config.ServiceAccountNamespaceFilePath)
+				w.Namespace = string(ns)
+				log.Info().Msgf("Use current namespace=%s from %s for searching configmap", w.Namespace, config.ServiceAccountNamespaceFilePath)
 			}
 		}
 		log.Info().Msg("Creating Kubernetes client from in-cluster discovery")
@@ -74,16 +70,16 @@ func NewK8sWatcher(ns string, cfmName string, masterUrl string, kubeconfig strin
 	if err != nil {
 		return nil, err
 	}
-	c.client = clientset.CoreV1()
-	log.Info().Msgf("Created watcher: apiserver=%s, namespace=%s", k8sConfig.Host, c.Namespace)
-	return &c, nil
+	w.client = clientset.CoreV1()
+	log.Info().Msgf("Created watcher: apiserver=%s, namespace=%s", k8sConfig.Host, w.Namespace)
+	return &w, nil
 }
 
-func (c *K8sWatcher) WatchNamespace(ctx context.Context, webhookEnabledLabel map[string]string, ch chan<- NamespaceEvent) error {
+func (w *K8sWatcher) WatchNamespace(ctx context.Context, webhookEnabledLabel map[string]string, ch chan<- NamespaceEvent) error {
 	log.Info().Msg("Watching for all namespace in cluster...")
 
 	labelSelector := metav1.LabelSelector{MatchLabels: webhookEnabledLabel}
-	watcher, err := c.client.Namespaces().Watch(ctx, metav1.ListOptions{
+	watcher, err := w.client.Namespaces().Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	})
 	if err != nil {
@@ -125,10 +121,10 @@ func (c *K8sWatcher) WatchNamespace(ctx context.Context, webhookEnabledLabel map
 	}
 }
 
-func (c *K8sWatcher) WatchConfigMap(ctx context.Context, notify chan<- interface{}) error {
-	log.Info().Msgf("Watching for configmap=%s on namespace=%s", c.CfmName, c.Namespace)
+func (w *K8sWatcher) WatchConfigMap(ctx context.Context, notify chan<- interface{}) error {
+	log.Info().Msgf("Watching for configmap=%s on namespace=%s", w.CfmName, w.Namespace)
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": "k8s-injector"}}
-	watcher, err := c.client.ConfigMaps(c.Namespace).Watch(ctx, metav1.ListOptions{
+	watcher, err := w.client.ConfigMaps(w.Namespace).Watch(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	})
 	if err != nil {
@@ -148,7 +144,7 @@ func (c *K8sWatcher) WatchConfigMap(ctx context.Context, notify chan<- interface
 				log.Error().Msg("cannot parse the event")
 				break
 			}
-			if configmap.Name != c.CfmName {
+			if configmap.Name != w.CfmName {
 				break
 			}
 
@@ -169,21 +165,30 @@ func (c *K8sWatcher) WatchConfigMap(ctx context.Context, notify chan<- interface
 	}
 }
 
-func (c *K8sWatcher) GetConfigMap(ctx context.Context) (map[string]*config.InjectionConfig, error) {
+func (w *K8sWatcher) GetConfigMap(ctx context.Context) (map[string]*config.InjectionConfig, error) {
 	log.Debug().Msg("Fetching Configmaps...")
-	cfm, err := c.client.ConfigMaps(c.Namespace).Get(ctx, c.CfmName, metav1.GetOptions{})
+	cfm, err := w.client.ConfigMaps(w.Namespace).Get(ctx, w.CfmName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("cannot get config map with error: %s", err.Error())
 	}
 	injs := map[string]*config.InjectionConfig{}
+	failedConfigMapKeyLoad := 0
 	for cfmFile, payload := range cfm.Data {
 		inj, err := config.LoadInjectionConfig([]byte(payload))
 		if err != nil {
 			log.Error().Msgf("cannot load injection config from ConfigMap: %s with error: %s", cfmFile, err.Error())
+			failedConfigMapKeyLoad++
 			continue
 		}
 		path := strings.ReplaceAll(cfmFile, ".", "/")
 		injs[path] = inj
 	}
+	if len(cfm.Data) > 0 && failedConfigMapKeyLoad == len(cfm.Data) {
+		return nil, fmt.Errorf("none of the configmap keys could be processed")
+	}
 	return injs, nil
 }
+
+// func checkKeyFormat(k string) bool {
+
+// }

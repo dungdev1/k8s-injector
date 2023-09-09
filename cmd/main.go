@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -20,6 +21,10 @@ const timeFormat = "02/01/2006 15:04:05"
 
 var mainConfig config.Config
 
+func describe(i interface{}) {
+	fmt.Printf("%v type %T\n", i, i)
+}
+
 func init() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: timeFormat, NoColor: true})
 
@@ -27,6 +32,10 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse cli args")
 	}
+
+	var x interface{}
+	x = 5
+	describe(x)
 
 	switch strings.ToLower(mainConfig.LogLevel) {
 	case "info":
@@ -129,11 +138,11 @@ func main() {
 		if err := webhook.StartInjectorServer(mainConfig.TLSPort, mainConfig.CertFile, mainConfig.KeyFile); err != nil {
 			log.Fatal().Msgf("Service failed: %v", err.Error())
 		}
-		log.Info().Msgf("Started webhook server on port %s", mainConfig.TLSPort)
+		log.Info().Msgf("Started webhook server on port %v", mainConfig.TLSPort)
 	}()
 
 	if err := webhook.StartLifeCycleServer((mainConfig.LifecyclePort)); err != nil {
 		log.Fatal().Msgf("Service failed: %v", err.Error())
 	}
-	log.Info().Msgf("Started lifecycle server on port %s", mainConfig.LifecyclePort)
+	log.Info().Msgf("Started lifecycle server on port %v", mainConfig.LifecyclePort)
 }

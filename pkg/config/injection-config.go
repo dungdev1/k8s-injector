@@ -32,26 +32,11 @@ type InjectionConfig struct {
 // 		len(c.VolumeMounts))
 // }
 
-// func (c *InjectionConfig) FullName() string {
-// 	return fmt.Sprintf("%s:%s", c.Name, c.Version())
-// }
-
-// func (c *InjectionConfig) Version() string {
-// 	if c.version == "" {
-// 		return defaultVersion
-// 	}
-
-// 	return c.version
-// }
-
 func LoadInjectionConfig(payload []byte) (*InjectionConfig, error) {
 	cfg := InjectionConfig{}
 	if err := yaml.Unmarshal(payload, &cfg); err != nil {
 		return nil, err
 	}
-	// if cfg.Name == "" {
-	// 	return nil, fmt.Errorf(`name field is required for an injection config`)
-	// }
 
 	return &cfg, nil
 }

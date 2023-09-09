@@ -1,11 +1,11 @@
-package admit
+package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/dungdev1/k8s-injector/pkg/config"
-	"github.com/dungdev1/k8s-injector/pkg/controller"
 	"github.com/rs/zerolog/log"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -14,11 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-var podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
+var podResource = metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 
 var universalDeserializer = serializer.NewCodecFactory(runtime.NewScheme()).UniversalDeserializer()
 
-func ApplySecurity(req *admissionv1.AdmissionRequest) ([]controller.PatchOperation, error) {
+func ApplySecurity(req *admissionv1.AdmissionRequest) ([]PatchOperation, error) {
 	log.Info().Msg("Apply Security to Pod")
 	pod, err := decodePodResource(req)
 	if err != nil {
@@ -26,28 +26,36 @@ func ApplySecurity(req *admissionv1.AdmissionRequest) ([]controller.PatchOperati
 	}
 	log.Debug().Msgf("%+v\n", pod)
 
-	return []controller.PatchOperation{}, nil
+	return []PatchOperation{}, nil
 }
 
-func ApplyNewConfig(req *admissionv1.AdmissionRequest, injConfigs map[string]*config.InjectionConfig, namespaces map[string]bool) ([]controller.PatchOperation, error) {
+func ApplyNewConfig(req *admissionv1.AdmissionRequest, injConfigs map[string]*config.InjectionConfig, namespaces map[string]bool) ([]PatchOperation, *bool, error) {
 	log.Info().Msg("Applying new configs...")
 
 	pod, err := decodePodResource(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if val, ok := pod.Labels["k8s-injection"]; ok && val == "disable" {
-		log.Info().Msgf("Does not apply configuration for Replicas %q because it's diabled")
-		return []controller.PatchOperation{}, nil
+		log.Info().Msgf("does not apply configuration for pod %q because it's diabled", pod.Name)
+		return []PatchOperation{}, nil, nil
 	}
 
-	log.Info().Msgf("ReplicaSet %q belong to namespace %q", pod.GenerateName, req.Namespace)
+	log.Info().Msgf("Pod %q belong to namespace %q", pod.Name, req.Namespace)
 	if !namespaces[req.Namespace] {
 		log.Info().Msgf("This mutating webhook only support on Pod in namepsaces %v, add label k8s-injection=enabled to enable for namespace", namespaces)
-		return []controller.PatchOperation{}, nil
+		return []PatchOperation{}, nil, nil
 	}
 
-	var patches []controller.PatchOperation
+	getJsonObject := func(obj interface{}) (string, error) {
+		val, err := json.Marshal(obj)
+		if err != nil {
+			return "", fmt.Errorf("could not marshal JSON patch value: %v", err)
+		}
+		return string(val), err
+	}
+
+	var patches []PatchOperation
 	for name, cfg := range injConfigs {
 		r := reflect.ValueOf(*cfg)
 		// typeOfCfg := r.Type()
@@ -65,25 +73,35 @@ func ApplyNewConfig(req *admissionv1.AdmissionRequest, injConfigs map[string]*co
 			if r.Field(i).Kind() == reflect.Slice && string(name[len(name)-1]) == "-" {
 				// Trường hợp add thêm 1 hoặc nhiều config vào list (đã có ít nhất 1 item)
 				for j := 0; j < r.Field(i).Len(); j++ {
-					patches = append(patches, controller.PatchOperation{
+					val, err := getJsonObject(r.Field(i).Index(j).Interface())
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					patches = append(patches, PatchOperation{
 						Op:    "add",
 						Path:  name,
-						Value: r.Field(i).Index(j).Interface(),
+						Value: val,
 					})
 				}
 			} else {
 
 				// Trường hợp add thêm 1 config/ 1 list config (new)
-				patches = append(patches, controller.PatchOperation{
+				val, err := getJsonObject(r.Field(i).Interface())
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				patches = append(patches, PatchOperation{
 					Op:    "add",
 					Path:  name,
-					Value: r.Field(i).Interface(),
+					Value: val,
 				})
 			}
 
 		}
 	}
-	return patches, nil
+	return patches, nil, nil
 }
 
 func decodePodResource(req *admissionv1.AdmissionRequest) (*corev1.Pod, error) {
@@ -97,6 +115,7 @@ func decodePodResource(req *admissionv1.AdmissionRequest) (*corev1.Pod, error) {
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
 	}
+	fmt.Println(pod)
 
 	return &pod, nil
 }

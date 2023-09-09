@@ -20,7 +20,12 @@ type PatchOperation struct {
 
 const jsonContentType = `application/json`
 
-type admitFunc func(*admissionv1.AdmissionRequest, map[string]*config.InjectionConfig, map[string]bool) ([]PatchOperation, error)
+type admitFunc func(*admissionv1.AdmissionRequest, map[string]*config.InjectionConfig, map[string]bool) ([]PatchOperation, *bool, error)
+
+type admissionType string
+
+const MutatingAdmission admissionType = "MUTATING"
+const ValidatingAdmission admissionType = "VALIDATING"
 
 func isSystemNamespace(ns string) bool {
 	return ns == metav1.NamespaceSystem || ns == metav1.NamespacePublic
@@ -29,7 +34,7 @@ func isSystemNamespace(ns string) bool {
 // This function parses the HTTP request from admission webhook controller, and in case of a well-formed request
 // , it call a admit function corresponding that implement logic for that request. The response will be returned as
 // raw bytes
-func HandleAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, injConfigs map[string]*config.InjectionConfig, namespaces map[string]bool) ([]byte, error) {
+func AdmissionControllerHandler(w http.ResponseWriter, r *http.Request, admit admitFunc, t admissionType, injConfigs map[string]*config.InjectionConfig, namespaces map[string]bool) ([]byte, error) {
 
 	// Step 1: Request validation. Only handle POST requests with a body and json content type.
 	if r.Method != http.MethodPost {
@@ -69,10 +74,18 @@ func HandleAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, in
 	admissionReviewResponse.Kind = "AdmissionReview"
 
 	var patchOps []PatchOperation
+	var allowed *bool
 
 	// Apply admit function only for non-system namespaces
 	if !isSystemNamespace(admissionReviewReq.Request.Namespace) {
-		patchOps, err = admit(admissionReviewReq.Request, injConfigs, namespaces)
+		if t == MutatingAdmission {
+			patchOps, _, err = admit(admissionReviewReq.Request, injConfigs, namespaces)
+		} else if t == ValidatingAdmission {
+			_, allowed, err = admit(admissionReviewReq.Request, injConfigs, namespaces)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			return nil, fmt.Errorf("admission type must be %q or %q", MutatingAdmission, ValidatingAdmission)
+		}
 	} else {
 		log.Info().Msg("Just apply configuration only for non-system namespaces")
 	}
@@ -92,8 +105,10 @@ func HandleAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, in
 			admissionReviewResponse.Response.Patch = patchBytes
 			var patchType admissionv1.PatchType = admissionv1.PatchTypeJSONPatch
 			admissionReviewResponse.Response.PatchType = &patchType
+			admissionReviewResponse.Response.Allowed = true
+		} else {
+			admissionReviewResponse.Response.Allowed = *allowed
 		}
-		admissionReviewResponse.Response.Allowed = true
 	}
 
 	// Return the AdmissionReview with a response as JSON
